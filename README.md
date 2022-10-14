@@ -7,6 +7,8 @@ Winix device API client library in Typescript
 ### Setup
 
 ```typescript
+import { Airflow, AirQuality, Mode, Plasmawave, Power, WinixAPI } from 'winix-api'
+
 // Assume this is defined throughout the examples
 const deviceId = 'ABCDEF012345_abcde01234';
 ```
