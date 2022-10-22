@@ -1,5 +1,7 @@
 # winix-api
 
+[![npm](https://img.shields.io/npm/dt/winix-api)](https://www.npmjs.com/package/winix-api)
+
 Winix device API client library in Typescript
 
 ## Usage
@@ -58,4 +60,11 @@ console.log('plasmawave on?:', plasma === Plasmawave.On);
 
 // Set to off
 await WinixAPI.setPlasmawave(deviceId, Plasmawave.Off);
+```
+
+### Get the Ambient Light
+
+```typescript
+const ambientLight: number = await WinixAPI.getAmbientLight(deviceId);
+console.log('ambientLight:', ambientLight);
 ```

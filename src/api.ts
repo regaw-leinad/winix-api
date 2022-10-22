@@ -41,6 +41,16 @@ export class WinixAPI {
     return await this.setDeviceAttribute(deviceId, Attribute.Plasmawave, value) as Plasmawave;
   }
 
+  static async getAmbientLight(deviceId: string): Promise<number> {
+    const rawValue: string = await this.getDeviceAttribute(deviceId, Attribute.AmbientLight);
+
+    if (!rawValue || isEmpty(rawValue)) {
+      return -1;
+    }
+
+    return parseInt(rawValue, 10);
+  }
+
   private static async getDeviceStatusAttributes(deviceId: string): Promise<StatusAttributes> {
     const url: string = WinixAPI.getDeviceStatusUrl(deviceId);
     const result: AxiosResponse<StatusResponse> = await axios.get<StatusResponse>(url);
@@ -82,4 +92,4 @@ export class WinixAPI {
   }
 }
 
-const isEmpty = (obj: object): boolean => Object.keys(obj).length === 0;
+const isEmpty = (data: object | string): boolean => Object.keys(data).length === 0;

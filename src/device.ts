@@ -1,6 +1,13 @@
-export enum Attribute { Power = 'A02', Mode = 'A03', Airflow = 'A04', Plasmawave = 'A07', AirQuality = 'S07' }
+export enum Attribute {
+  Power = 'A02',
+  Mode = 'A03',
+  Airflow = 'A04',
+  Plasmawave = 'A07',
+  AirQuality = 'S07',
+  AmbientLight = 'S14'
+}
 
-export type AttributeValue = Power | Mode | Airflow | AirQuality | Plasmawave;
+export type AttributeValue = string;
 
 export enum Power {
   Off = '0',
@@ -29,12 +36,4 @@ export enum AirQuality {
 export enum Plasmawave {
   Off = '0',
   On = '1'
-}
-
-export interface DeviceStatus {
-  power: Power;
-  mode: Mode;
-  airflow: Airflow;
-  airQuality: AirQuality;
-  plasmawave: Plasmawave;
 }
