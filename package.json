@@ -1,6 +1,6 @@
 {
   "name": "winix-api",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Winix device API client library",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
