@@ -37,3 +37,12 @@ export enum Plasmawave {
   Off = '0',
   On = '1'
 }
+
+export interface DeviceStatus {
+  power: Power;
+  mode: Mode;
+  airflow: Airflow;
+  airQuality: AirQuality;
+  plasmawave: Plasmawave;
+  ambientLight: number;
+}

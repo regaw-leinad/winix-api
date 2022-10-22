@@ -1,4 +1,4 @@
-import { Airflow, AirQuality, Mode, Plasmawave, Power } from './device';
+import { Airflow, AirQuality, DeviceStatus, Mode, Plasmawave, Power } from './device';
 import { WinixAPI } from './api';
 
 export {
@@ -8,4 +8,5 @@ export {
   Airflow,
   AirQuality,
   Plasmawave,
+  DeviceStatus,
 };
