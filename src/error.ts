@@ -2,6 +2,7 @@ const responseErrors = {
   'no data': { x: true, displayName: 'no data (invalid or unregistered device?)' },
   'parameter(s) not valid : device id': { x: true },
   'device not registered': { x: true },
+  'device not connected': { x: true },
 };
 
 export const isResponseError = (possibleError: string): boolean => {
