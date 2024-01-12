@@ -1,16 +1,15 @@
-export interface SetAttributeResponse {
+export interface DeviceApiResponse<T> {
   headers: Headers;
-}
-
-export interface StatusResponse {
-  headers: Headers;
-  body: StatusBody;
+  body: T;
 }
 
 export interface Headers {
   resultCode: string;
   resultMessage: string;
 }
+
+export type SetAttributeResponse = DeviceApiResponse<void>;
+export type StatusResponse = DeviceApiResponse<StatusBody>;
 
 export interface StatusBody {
   data: StatusData[];
