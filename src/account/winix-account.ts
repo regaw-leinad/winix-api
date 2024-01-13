@@ -28,10 +28,10 @@ export class WinixAccount {
     return account;
   }
 
-  static async fromExistingWinixAuth(auth: WinixAuthResponse): Promise<WinixAccount> {
-    const account = new WinixAccount(auth);
-    await account.refresh();
-    return account;
+  static async fromRefreshToken(refreshToken: string, userId: string): Promise<WinixAccount> {
+    return new WinixAccount(
+      await WinixAuth.refresh(userId, refreshToken),
+    );
   }
 
   /**
@@ -56,10 +56,7 @@ export class WinixAccount {
       return;
     }
 
-    const refreshToken = this.auth.refreshToken;
     this.auth = await WinixAuth.refresh(this.auth.userId, this.auth.refreshToken);
-    // There is no refresh token in the response, so we have to re-set the one we already have
-    this.auth.refreshToken = refreshToken;
     // Generate a new uuid based on the new access token
     this.uuid = WinixAccount.generateUuid(this.auth.accessToken);
     await this.checkAccessToken();
@@ -79,7 +76,7 @@ export class WinixAccount {
    * Mark as expired if it's within 10 minutes of expiring.
    */
   private isExpired(): boolean {
-    return this.auth.expiresAt < (Date.now() - TOKEN_EXPIRY_BUFFER);
+    return !this.auth.accessToken || this.auth.expiresAt <= (Date.now() - TOKEN_EXPIRY_BUFFER);
   }
 
   /**

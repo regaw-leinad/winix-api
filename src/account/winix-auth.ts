@@ -20,11 +20,11 @@ export interface WinixAuthResponse {
 
 export class WinixAuth {
 
-  static async login(username: string, password: string): Promise<WinixAuthResponse> {
+  static async login(username: string, password: string, maxAttempts = 5): Promise<WinixAuthResponse> {
     const w = new WarrantLite(username, password, COGNITO_CLIENT, COGNITO_USER_POOL_ID, COGNITO_APP_CLIENT_ID, COGNITO_CLIENT_SECRET_KEY);
 
     // Workaround for Winix's login API failing when user is signed in to the app on another device.
-    const response = await retry(() => w.authenticateUser(), 5, 5000);
+    const response = await retry(() => w.authenticateUser(), maxAttempts, 3000);
     const sub = decode(response.AuthenticationResult!.AccessToken!)!.sub as string;
 
     return {
@@ -35,7 +35,7 @@ export class WinixAuth {
     };
   }
 
-  static async refresh(userId: string, refreshToken: string): Promise<WinixAuthResponse> {
+  static async refresh(refreshToken: string, userId: string): Promise<WinixAuthResponse> {
     const authParams = {
       REFRESH_TOKEN: refreshToken,
       SECRET_HASH: WarrantLite.getSecretHash(userId, COGNITO_APP_CLIENT_ID, COGNITO_CLIENT_SECRET_KEY),
@@ -51,7 +51,7 @@ export class WinixAuth {
       userId: userId,
       accessToken: response.AuthenticationResult!.AccessToken!,
       expiresAt: toExpiresAt(response.AuthenticationResult!.ExpiresIn!),
-      refreshToken: response.AuthenticationResult!.RefreshToken!,
+      refreshToken: refreshToken,
     };
   }
 }
