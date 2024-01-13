@@ -29,9 +29,9 @@ export class WinixAccount {
   }
 
   static async fromRefreshToken(refreshToken: string, userId: string): Promise<WinixAccount> {
-    return new WinixAccount(
-      await WinixAuth.refresh(userId, refreshToken),
-    );
+    const account = new WinixAccount(await WinixAuth.refresh(userId, refreshToken));
+    await account.checkAccessToken();
+    return account;
   }
 
   /**
@@ -50,7 +50,7 @@ export class WinixAccount {
     return response.data.deviceInfoList;
   }
 
-  async refresh(): Promise<void> {
+  private async refresh(): Promise<void> {
     // Don't refresh if we don't need to
     if (!this.isExpired()) {
       return;
