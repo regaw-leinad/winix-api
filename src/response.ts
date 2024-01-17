@@ -28,4 +28,8 @@ export interface StatusAttributes {
   A04: string;
   // Air Quality
   S07: string;
+  // Plasmawave
+  A07: string;
+  // Ambient Light
+  S14: string;
 }

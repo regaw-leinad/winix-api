@@ -67,7 +67,7 @@ export class WinixAPI {
 
   private static async getDeviceAttribute(deviceId: string, attribute: Attribute): Promise<AttributeValue> {
     const attributes: StatusAttributes = await this.getDeviceStatusAttributes(deviceId);
-    return attributes[attribute.toString()];
+    return attributes[attribute];
   }
 
   private static async setDeviceAttribute(deviceId: string, attribute: Attribute, value: AttributeValue): Promise<AttributeValue> {
