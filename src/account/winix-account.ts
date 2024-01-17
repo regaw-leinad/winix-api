@@ -1,6 +1,6 @@
 import { COGNITO_CLIENT_SECRET_KEY, WinixAuth, WinixAuthResponse } from './winix-auth';
-import { WinixDevice } from './winix-device';
 import { decode, JwtPayload } from 'jsonwebtoken';
+import { WinixDevice } from './winix-device';
 import { crc32 } from 'crc';
 import axios from 'axios';
 
@@ -13,23 +13,55 @@ interface WinixDevicesResponse {
   deviceInfoList: WinixDevice[];
 }
 
+/**
+ * Existing auth credentials.
+ */
+export interface WinixExistingAuth {
+  /**
+   * The username used to log in (email)
+   */
+  username: string;
+  /**
+   * The refresh token
+   */
+  refreshToken: string;
+  /**
+   * The user id (subject) from the cognito access token
+   */
+  userId: string;
+}
+
 export class WinixAccount {
   private uuid: string;
 
-  private constructor(private auth: WinixAuthResponse) {
+  private constructor(private username: string, private auth: WinixAuthResponse) {
     this.uuid = WinixAccount.generateUuid(auth.accessToken);
   }
 
+  /**
+   * Create a WinixAccount from credentials.
+   *
+   * @param username The username (email)
+   * @param password The password
+   */
   static async fromCredentials(username: string, password: string): Promise<WinixAccount> {
     const auth = await WinixAuth.login(username, password);
-    const account = new WinixAccount(auth);
-    await account.registerUser(username);
-    await account.checkAccessToken();
-    return account;
+    return WinixAccount.from(username, auth);
   }
 
-  static async fromRefreshToken(refreshToken: string, userId: string): Promise<WinixAccount> {
-    const account = new WinixAccount(await WinixAuth.refresh(userId, refreshToken));
+  /**
+   * Create a WinixAccount from existing auth credentials.
+   *
+   * @param existingAuth Existing auth credentials
+   */
+  static async fromExistingAuth({ username, refreshToken, userId }: WinixExistingAuth): Promise<WinixAccount> {
+    const auth = await WinixAuth.refresh(refreshToken, userId);
+    return WinixAccount.from(username, auth);
+  }
+
+  private static async from(username: string, auth: WinixAuthResponse): Promise<WinixAccount> {
+    const account = new WinixAccount(username, auth);
+    await account.registerUser();
     await account.checkAccessToken();
     return account;
   }
@@ -59,6 +91,7 @@ export class WinixAccount {
     this.auth = await WinixAuth.refresh(this.auth.userId, this.auth.refreshToken);
     // Generate a new uuid based on the new access token
     this.uuid = WinixAccount.generateUuid(this.auth.accessToken);
+    await this.registerUser();
     await this.checkAccessToken();
   }
 
@@ -85,12 +118,12 @@ export class WinixAccount {
    * Call after getting a cognito access token, but before checkAccessToken(). This is necessary for the winix backend
    * to recognize the android "uuid" we send in these api requests.
    */
-  private async registerUser(email: string): Promise<void> {
+  private async registerUser(): Promise<void> {
     const payload = {
       cognitoClientSecretKey: COGNITO_CLIENT_SECRET_KEY,
       accessToken: await this.getAccessToken(),
       uuid: this.uuid,
-      email: email,
+      email: this.username,
       osType: 'android',
       osVersion: '29',
       mobileLang: 'en',
