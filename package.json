@@ -23,7 +23,7 @@
     "postversion": "git push && git push --tags && rm -rf ./dist"
   },
   "dependencies": {
-    "aws-sdk": "^2.1537.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.490.0",
     "axios": "^1.6.5",
     "crc": "^4.3.2",
     "date-fns": "^3.2.0",

@@ -4,13 +4,10 @@
  */
 
 import {
-  AuthParametersType,
-  ChallengeParametersType,
-  ChallengeResponsesType,
-  InitiateAuthResponse,
-} from 'aws-sdk/clients/cognitoidentityserviceprovider';
-import { AWSError, CognitoIdentityServiceProvider } from 'aws-sdk';
-import { PromiseResult } from 'aws-sdk/lib/request';
+  CognitoIdentityProvider,
+  InitiateAuthCommandOutput,
+  RespondToAuthChallengeCommandOutput,
+} from '@aws-sdk/client-cognito-identity-provider';
 import { format } from 'date-fns';
 import crypto from 'crypto';
 
@@ -114,7 +111,7 @@ export class WarrantLite {
   constructor(
     private username: string,
     private password: string,
-    private client: CognitoIdentityServiceProvider,
+    private client: CognitoIdentityProvider,
     private poolId: string,
     private clientId: string,
     private clientSecret: string,
@@ -132,16 +129,16 @@ export class WarrantLite {
     return hmac.toString('base64');
   }
 
-  async authenticateUser(): Promise<PromiseResult<CognitoIdentityServiceProvider.RespondToAuthChallengeResponse, AWSError>> {
+  async authenticateUser(): Promise<RespondToAuthChallengeCommandOutput> {
     const authParams = this.getAuthParams();
 
-    let response: InitiateAuthResponse;
+    let response: InitiateAuthCommandOutput;
     try {
       response = await this.client.initiateAuth({
         AuthFlow: 'USER_SRP_AUTH',
         AuthParameters: authParams,
         ClientId: this.clientId,
-      }).promise();
+      });
     } catch (error) {
       console.error('Error during authentication:', error);
       throw error;
@@ -159,7 +156,7 @@ export class WarrantLite {
       ClientId: this.clientId,
       ChallengeName: WarrantLite.PASSWORD_VERIFIER_CHALLENGE,
       ChallengeResponses: challengeResponse,
-    }).promise();
+    });
 
     if (tokens.ChallengeName === WarrantLite.NEW_PASSWORD_REQUIRED_CHALLENGE) {
       throw new ForceChangePasswordException('Change password before authenticating');
@@ -199,7 +196,7 @@ export class WarrantLite {
     return computeHkdf(Buffer.from(padHex(sValue), 'hex'), Buffer.from(padHex(longToHex(uValue)), 'hex'));
   }
 
-  private getAuthParams(): AuthParametersType {
+  private getAuthParams(): Record<string, string> {
     return {
       USERNAME: this.username,
       SRP_A: longToHex(this.largeAValue),
@@ -207,7 +204,7 @@ export class WarrantLite {
     };
   }
 
-  private processChallenge(challengeParameters: ChallengeParametersType): ChallengeResponsesType {
+  private processChallenge(challengeParameters: Record<string, string>): Record<string, string> {
     const userIdForSrp = challengeParameters['USER_ID_FOR_SRP'];
     const saltHex = challengeParameters['SALT'];
     const srpBHex = challengeParameters['SRP_B'];

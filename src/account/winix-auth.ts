@@ -1,4 +1,4 @@
-import { CognitoIdentityServiceProvider } from 'aws-sdk';
+import { CognitoIdentityProvider } from '@aws-sdk/client-cognito-identity-provider';
 import { WarrantLite } from './warrant-lite';
 import { decode } from 'jsonwebtoken';
 
@@ -9,7 +9,9 @@ export const COGNITO_CLIENT_SECRET_KEY = 'k554d4pvgf2n0chbhgtmbe4q0ul4a9flp3pcl6
 export const COGNITO_USER_POOL_ID = 'us-east-1_Ofd50EosD';
 export const COGNITO_REGION = 'us-east-1';
 
-const COGNITO_CLIENT = new CognitoIdentityServiceProvider({ region: COGNITO_REGION });
+const COGNITO_CLIENT = new CognitoIdentityProvider({
+  region: COGNITO_REGION,
+});
 
 export interface WinixAuthResponse {
   userId: string;
@@ -45,7 +47,7 @@ export class WinixAuth {
       ClientId: COGNITO_APP_CLIENT_ID,
       AuthFlow: 'REFRESH_TOKEN',
       AuthParameters: authParams,
-    }).promise();
+    });
 
     return {
       userId: userId,
