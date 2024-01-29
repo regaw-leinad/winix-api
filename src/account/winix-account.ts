@@ -88,7 +88,7 @@ export class WinixAccount {
       return;
     }
 
-    this.auth = await WinixAuth.refresh(this.auth.userId, this.auth.refreshToken);
+    this.auth = await WinixAuth.refresh(this.auth.refreshToken, this.auth.userId);
     // Generate a new uuid based on the new access token
     this.uuid = WinixAccount.generateUuid(this.auth.accessToken);
     await this.registerUser();
