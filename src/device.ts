@@ -3,6 +3,7 @@ export enum Attribute {
   Mode = 'A03',
   Airflow = 'A04',
   Plasmawave = 'A07',
+  FilterHours = 'A21',
   AirQuality = 'S07',
   AmbientLight = 'S14'
 }
@@ -45,4 +46,5 @@ export interface DeviceStatus {
   airQuality?: AirQuality;
   plasmawave?: Plasmawave;
   ambientLight?: number;
+  filterHours?: number;
 }
