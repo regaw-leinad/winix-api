@@ -40,11 +40,11 @@ export enum Plasmawave {
 }
 
 export interface DeviceStatus {
-  power?: Power;
-  mode?: Mode;
-  airflow?: Airflow;
-  airQuality?: AirQuality;
-  plasmawave?: Plasmawave;
-  ambientLight?: number;
-  filterHours?: number;
+  power: Power;
+  mode: Mode;
+  airflow: Airflow;
+  airQuality: AirQuality;
+  plasmawave: Plasmawave;
+  ambientLight: number;
+  filterHours: number;
 }

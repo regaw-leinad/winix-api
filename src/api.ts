@@ -1,5 +1,5 @@
+import { Airflow, AirQuality, Attribute, AttributeValue, DeviceStatus, Mode, Plasmawave, Power } from './device';
 import { SetAttributeResponse, StatusAttributes, StatusBody, StatusResponse } from './response';
-import { Airflow, AirQuality, Attribute, AttributeValue, Mode, Plasmawave, Power } from './device';
 import { getErrorMessage, isResponseError } from './error';
 import axios, { AxiosResponse } from 'axios';
 
@@ -49,6 +49,20 @@ export class WinixAPI {
     }
 
     return parseInt(rawValue, 10);
+  }
+
+  static async getDeviceStatus(deviceId: string): Promise<DeviceStatus> {
+    const attributes: StatusAttributes = await this.getDeviceStatusAttributes(deviceId);
+
+    return {
+      power: attributes.A02 as Power,
+      mode: attributes.A03 as Mode,
+      airflow: attributes.A04 as Airflow,
+      airQuality: attributes.S07 as AirQuality,
+      plasmawave: attributes.A07 as Plasmawave,
+      ambientLight: parseInt(attributes.S14, 10),
+      filterHours: parseInt(attributes.A21, 10),
+    };
   }
 
   static async getFilterHours(deviceId: string): Promise<number> {
