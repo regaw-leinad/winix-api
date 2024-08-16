@@ -1,4 +1,4 @@
-import { CognitoIdentityProvider } from '@aws-sdk/client-cognito-identity-provider';
+import { CognitoIdentityProvider, NotAuthorizedException } from '@aws-sdk/client-cognito-identity-provider';
 import { WarrantLite } from './warrant-lite';
 import { decode } from 'jsonwebtoken';
 
@@ -18,6 +18,12 @@ export interface WinixAuthResponse {
   accessToken: string;
   expiresAt: number;
   refreshToken: string;
+}
+
+export class RefreshTokenExpiredError extends Error {
+  constructor() {
+    super('Refresh token has expired');
+  }
 }
 
 export class WinixAuth {
@@ -43,11 +49,20 @@ export class WinixAuth {
       SECRET_HASH: WarrantLite.getSecretHash(userId, COGNITO_APP_CLIENT_ID, COGNITO_CLIENT_SECRET_KEY),
     };
 
-    const response = await COGNITO_CLIENT.initiateAuth({
-      ClientId: COGNITO_APP_CLIENT_ID,
-      AuthFlow: 'REFRESH_TOKEN',
-      AuthParameters: authParams,
-    });
+    let response;
+
+    try {
+      response = await COGNITO_CLIENT.initiateAuth({
+        ClientId: COGNITO_APP_CLIENT_ID,
+        AuthFlow: 'REFRESH_TOKEN',
+        AuthParameters: authParams,
+      });
+    } catch (error) {
+      if (error instanceof NotAuthorizedException) {
+        throw new RefreshTokenExpiredError();
+      }
+      throw error;
+    }
 
     return {
       userId: userId,
