@@ -59,7 +59,13 @@ export class WinixAccount {
     return WinixAccount.from(username, auth);
   }
 
-  private static async from(username: string, auth: WinixAuthResponse): Promise<WinixAccount> {
+  /**
+   * Create a WinixAccount from an existing WinixAuthResponse and username.
+   *
+   * @param username The username (email)
+   * @param auth The existing auth response
+   */
+  static async from(username: string, auth: WinixAuthResponse): Promise<WinixAccount> {
     const account = new WinixAccount(username, auth);
     await account.registerUser();
     await account.checkAccessToken();
