@@ -29,6 +29,7 @@ export enum Airflow {
 }
 
 export enum AirQuality {
+  GoodAlternate = '1.0',
   Good = '01',
   Fair = '02',
   Poor = '03'
