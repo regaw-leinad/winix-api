@@ -1,18 +1,15 @@
-import {
-  Airflow,
-  AirQuality,
-  Attribute,
-  AttributeValue,
-  DeviceStatus,
-  Mode,
-  Plasmawave,
-  Power,
-  StaticAirQuality,
-  StaticAirQualityValues,
-} from './device';
+import { Airflow, AirQuality, Attribute, AttributeValue, DeviceStatus, Mode, Plasmawave, Power } from './device';
 import { SetAttributeResponse, StatusAttributes, StatusBody, StatusResponse } from './response';
 import { getErrorMessage, isResponseError } from './error';
 import axios, { AxiosResponse } from 'axios';
+
+const AirQualityValues = new Set(
+  [
+    AirQuality.Good,
+    AirQuality.Fair,
+    AirQuality.Poor,
+  ],
+);
 
 export class WinixAPI {
 
@@ -65,19 +62,27 @@ export class WinixAPI {
   static async getDeviceStatus(deviceId: string): Promise<DeviceStatus> {
     const attributes: StatusAttributes = await this.getDeviceStatusAttributes(deviceId);
 
-    // AirQuality can be either a static value or a number from 1.0 to 3.0
     let airQuality: AirQuality;
-    if (StaticAirQualityValues.has(attributes.S07 as StaticAirQuality)) {
-      airQuality = attributes.S07 as StaticAirQuality;
+    if (AirQualityValues.has(attributes.S07 as AirQuality)) {
+      airQuality = attributes.S07 as AirQuality;
     } else {
-      airQuality = parseFloat(attributes.S07);
+      // Map the air quality value to the expected enum
+      const quality = parseFloat(attributes.S07);
+
+      if (quality > 2.0) {
+        airQuality = AirQuality.Poor;
+      } else if (quality > 1.0) {
+        airQuality = AirQuality.Fair;
+      } else {
+        airQuality = AirQuality.Good;
+      }
     }
 
     return {
       power: attributes.A02 as Power,
       mode: attributes.A03 as Mode,
       airflow: attributes.A04 as Airflow,
-      airQuality: airQuality,
+      airQuality: airQuality as AirQuality,
       plasmawave: attributes.A07 as Plasmawave,
       ambientLight: parseInt(attributes.S14, 10),
       filterHours: parseInt(attributes.A21, 10),
