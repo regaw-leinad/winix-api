@@ -28,12 +28,21 @@ export enum Airflow {
   Sleep = '06'
 }
 
-export enum AirQuality {
-  GoodAlternate = '1.0',
+export enum StaticAirQuality {
   Good = '01',
   Fair = '02',
   Poor = '03'
 }
+
+export const StaticAirQualityValues = new Set(
+  [
+    StaticAirQuality.Good,
+    StaticAirQuality.Fair,
+    StaticAirQuality.Poor,
+  ],
+);
+
+export type AirQuality = StaticAirQuality | number;
 
 export enum Plasmawave {
   Off = '0',
