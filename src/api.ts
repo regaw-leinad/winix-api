@@ -69,9 +69,9 @@ export class WinixAPI {
       // Map the air quality value to the expected enum
       const quality = parseFloat(attributes.S07);
 
-      if (quality > 2.0) {
+      if (quality >= 2.1) {
         airQuality = AirQuality.Poor;
-      } else if (quality > 1.0) {
+      } else if (quality >= 1.1) {
         airQuality = AirQuality.Fair;
       } else {
         airQuality = AirQuality.Good;
