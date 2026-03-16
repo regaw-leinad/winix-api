@@ -1,0 +1,24 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 0' # Sunday at 6am UTC
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Run integration tests
+        run: npx vitest run test/integration.test.ts --reporter=verbose
+        env:
+          WINIX_USERNAME: ${{ secrets.WINIX_USERNAME }}
+          WINIX_PASSWORD: ${{ secrets.WINIX_PASSWORD }}
+          WINIX_DEVICE_ID: ${{ secrets.WINIX_DEVICE_ID }}
