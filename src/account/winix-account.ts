@@ -2,14 +2,19 @@ import { COGNITO_CLIENT_SECRET_KEY, WinixAuth, WinixAuthResponse } from './winix
 import { decode, JwtPayload } from 'jsonwebtoken';
 import { WinixDevice } from './winix-device';
 import { crc32 } from 'crc';
-import axios from 'axios';
+import { mobilePost, MOBILE_APP_VERSION, MOBILE_MODEL } from './winix-crypto';
 
 const TOKEN_EXPIRY_BUFFER = 10 * 60 * 1000;
 const URL_GET_DEVICES = 'https://us.mobile.winix-iot.com/getDeviceInfoList';
 const URL_REGISTER_USER = 'https://us.mobile.winix-iot.com/registerUser';
 const URL_CHECK_ACCESS_TOKEN = 'https://us.mobile.winix-iot.com/checkAccessToken';
 
-interface WinixDevicesResponse {
+interface WinixMobileResponse {
+  resultCode: string;
+  resultMessage: string;
+}
+
+interface WinixDevicesResponse extends WinixMobileResponse {
   deviceInfoList: WinixDevice[];
 }
 
@@ -76,16 +81,18 @@ export class WinixAccount {
    * Get a list of devices associated with the account.
    */
   async getDevices(): Promise<WinixDevice[]> {
-    const response = await axios.post<WinixDevicesResponse>(URL_GET_DEVICES, {
+    const response = await mobilePost<WinixDevicesResponse>(URL_GET_DEVICES, {
+      cognitoClientSecretKey: COGNITO_CLIENT_SECRET_KEY,
       accessToken: await this.getAccessToken(),
       uuid: this.uuid,
+      osType: 'android',
+      osVersion: '29',
+      mobileLang: 'en',
+      appVersion: MOBILE_APP_VERSION,
+      mobileModel: MOBILE_MODEL,
     });
 
-    if (response.status !== 200) {
-      throw new Error(`Error getting devices (${response.status}): ${response.data}`);
-    }
-
-    return response.data.deviceInfoList;
+    return response.deviceInfoList;
   }
 
   private async refresh(): Promise<void> {
@@ -120,12 +127,12 @@ export class WinixAccount {
 
   /**
    * Register the logged-in android login/uuid with the Winix API.
-   * <br>
+   *
    * Call after getting a cognito access token, but before checkAccessToken(). This is necessary for the winix backend
    * to recognize the android "uuid" we send in these api requests.
    */
   private async registerUser(): Promise<void> {
-    const payload = {
+    await mobilePost<WinixMobileResponse>(URL_REGISTER_USER, {
       cognitoClientSecretKey: COGNITO_CLIENT_SECRET_KEY,
       accessToken: await this.getAccessToken(),
       uuid: this.uuid,
@@ -133,30 +140,25 @@ export class WinixAccount {
       osType: 'android',
       osVersion: '29',
       mobileLang: 'en',
-    };
-
-    const response = await axios.post(URL_REGISTER_USER, payload);
-    if (response.status !== 200) {
-      throw new Error(`Error while registering user (${response.status}): ${response.data}`);
-    }
+      appVersion: MOBILE_APP_VERSION,
+      mobileModel: MOBILE_MODEL,
+    });
   }
 
   /**
    * Confirm the validity of the access token with the Winix API.
    */
   private async checkAccessToken(): Promise<void> {
-    const payload = {
+    await mobilePost<WinixMobileResponse>(URL_CHECK_ACCESS_TOKEN, {
       cognitoClientSecretKey: COGNITO_CLIENT_SECRET_KEY,
       accessToken: await this.getAccessToken(),
       uuid: this.uuid,
+      osType: 'android',
       osVersion: '29',
       mobileLang: 'en',
-    };
-
-    const response = await axios.post(URL_CHECK_ACCESS_TOKEN, payload);
-    if (response.status !== 200) {
-      throw new Error(`Error while checking access token (${response.status}): ${response.data}`);
-    }
+      appVersion: MOBILE_APP_VERSION,
+      mobileModel: MOBILE_MODEL,
+    });
   }
 
   /**
