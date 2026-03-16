@@ -119,3 +119,8 @@ web_modules/
 .yarn/unplugged
 .yarn/build-state.yml
 .pnp.*
+
+research/
+
+# Ad-hoc test scripts (may contain credentials)
+/test-*.ts

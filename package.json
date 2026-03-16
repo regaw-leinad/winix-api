@@ -17,6 +17,8 @@
   "scripts": {
     "lint": "eslint src/**.ts --max-warnings=0",
     "build": "rm -rf ./dist && tsc",
+    "test": "vitest run",
+    "test:integration": "vitest run test/integration.test.ts",
     "validate": "npm run lint && npm run build",
     "prepublishOnly": "npm run lint && npm run build",
     "version": "npm run validate",
@@ -36,7 +38,8 @@
     "@typescript-eslint/eslint-plugin": "6.19.0",
     "@typescript-eslint/parser": "6.19.0",
     "eslint": "8.56.0",
-    "typescript": "5.3.3"
+    "typescript": "5.3.3",
+    "vitest": "4.1.0"
   },
   "keywords": [
     "winix",
