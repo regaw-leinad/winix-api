@@ -159,33 +159,23 @@ export class WinixAPI {
   static async getDeviceStatus(deviceId: string): Promise<DeviceStatus> {
     const attributes: StatusAttributes = await this.getDeviceStatusAttributes(deviceId);
 
-    let airQuality: AirQuality;
-    if (AirQualityValues.has(attributes.S07 as AirQuality)) {
-      airQuality = attributes.S07 as AirQuality;
-    } else {
-      // Map the air quality value to the expected enum
-      const quality = parseFloat(attributes.S07);
-
-      if (quality >= 2.1) {
-        airQuality = AirQuality.Poor;
-      } else if (quality >= 1.1) {
-        airQuality = AirQuality.Fair;
-      } else {
-        airQuality = AirQuality.Good;
-      }
-    }
-
     const status: DeviceStatus = {
-      power: attributes.A02 as Power,
-      mode: attributes.A03 as Mode,
-      airflow: attributes.A04 as Airflow,
-      airQuality: airQuality as AirQuality,
-      plasmawave: attributes.A07 as Plasmawave,
-      ambientLight: parseInt(attributes.S14, 10),
-      filterHours: parseInt(attributes.A21, 10),
+      power: attributes[Attribute.Power] as Power,
+      mode: attributes[Attribute.Mode] as Mode,
+      airflow: attributes[Attribute.Airflow] as Airflow,
+      filterHours: parseInt(attributes[Attribute.FilterHours], 10),
     };
 
     // Populate optional fields if present
+    if (attributes[Attribute.AirQuality] !== undefined) {
+      status.airQuality = this.parseAirQuality(attributes[Attribute.AirQuality]);
+    }
+    if (attributes[Attribute.Plasmawave] !== undefined) {
+      status.plasmawave = attributes[Attribute.Plasmawave] as Plasmawave;
+    }
+    if (attributes[Attribute.AmbientLight] !== undefined) {
+      status.ambientLight = parseInt(attributes[Attribute.AmbientLight], 10);
+    }
     if (attributes[Attribute.ChildLock] !== undefined) {
       status.childLock = attributes[Attribute.ChildLock] as ChildLock;
     }
@@ -227,6 +217,23 @@ export class WinixAPI {
   }
 
   // Private helpers
+
+  private static parseAirQuality(value: string): AirQuality {
+    if (AirQualityValues.has(value as AirQuality)) {
+      return value as AirQuality;
+    }
+
+    // Map numeric air quality value to the expected enum
+    const quality = parseFloat(value);
+
+    if (quality >= 2.1) {
+      return AirQuality.Poor;
+    } else if (quality >= 1.1) {
+      return AirQuality.Fair;
+    }
+
+    return AirQuality.Good;
+  }
 
   private static async getDeviceStatusAttributes(deviceId: string): Promise<StatusAttributes> {
     const url: string = WinixAPI.getDeviceStatusUrl(deviceId);

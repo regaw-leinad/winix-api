@@ -80,15 +80,16 @@ export enum Timer {
 }
 
 export interface DeviceStatus {
+  // Common attributes (all models)
   power: Power;
   mode: Mode;
   airflow: Airflow;
-  airQuality: AirQuality;
-  plasmawave: Plasmawave;
-  ambientLight: number;
   filterHours: number;
 
   // Optional attributes (model-dependent)
+  airQuality?: AirQuality;
+  plasmawave?: Plasmawave;
+  ambientLight?: number;
   childLock?: ChildLock;
   pollutionLamp?: PollutionLamp;
   uv?: UV;

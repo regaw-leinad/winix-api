@@ -20,17 +20,6 @@ export interface StatusData {
 }
 
 export interface StatusAttributes {
-  // Control attributes
-  A02: string;
-  A03: string;
-  A04: string;
-  A07: string;
-  A21: string;
-
-  // Sensor attributes
-  S07: string;
-  S14: string;
-
-  // Allow additional attributes for capability discovery
+  // All attributes are dynamic and model-dependent
   [key: string]: string;
 }
