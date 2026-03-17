@@ -68,15 +68,18 @@ export enum UV {
 
 export enum Brightness {
   Off = '0',
-  Low = '1',
-  High = '2'
+  Low = '30',
+  Medium = '70',
+  High = '100'
 }
 
 export enum Timer {
   Off = '0',
   OneHour = '1',
+  TwoHours = '2',
   FourHours = '4',
-  EightHours = '8'
+  EightHours = '8',
+  TwelveHours = '12'
 }
 
 export interface DeviceStatus {
