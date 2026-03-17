@@ -115,43 +115,19 @@ export class WinixAPI {
   // Sensors
 
   static async getAmbientLight(deviceId: string): Promise<number> {
-    const rawValue: string = await this.getDeviceAttribute(deviceId, Attribute.AmbientLight);
-
-    if (!rawValue || isEmpty(rawValue)) {
-      return -1;
-    }
-
-    return parseInt(rawValue, 10);
+    return this.getNumericAttribute(deviceId, Attribute.AmbientLight);
   }
 
   static async getPM25(deviceId: string): Promise<number> {
-    const rawValue: string = await this.getDeviceAttribute(deviceId, Attribute.PM25);
-
-    if (!rawValue || isEmpty(rawValue)) {
-      return -1;
-    }
-
-    return parseInt(rawValue, 10);
+    return this.getNumericAttribute(deviceId, Attribute.PM25);
   }
 
   static async getAirQValue(deviceId: string): Promise<number> {
-    const rawValue: string = await this.getDeviceAttribute(deviceId, Attribute.AirQValue);
-
-    if (!rawValue || isEmpty(rawValue)) {
-      return -1;
-    }
-
-    return parseFloat(rawValue);
+    return this.getNumericAttribute(deviceId, Attribute.AirQValue, parseFloat);
   }
 
   static async getFilterHours(deviceId: string): Promise<number> {
-    const rawValue: string = await this.getDeviceAttribute(deviceId, Attribute.FilterHours);
-
-    if (!rawValue || isEmpty(rawValue)) {
-      return -1;
-    }
-
-    return parseInt(rawValue, 10);
+    return this.getNumericAttribute(deviceId, Attribute.FilterHours);
   }
 
   // Device Status & Capabilities
@@ -217,6 +193,20 @@ export class WinixAPI {
   }
 
   // Private helpers
+
+  private static async getNumericAttribute(
+    deviceId: string,
+    attribute: Attribute,
+    parser: (value: string) => number = (v) => parseInt(v, 10),
+  ): Promise<number> {
+    const rawValue: string = await this.getDeviceAttribute(deviceId, attribute);
+
+    if (!rawValue || isEmpty(rawValue)) {
+      return -1;
+    }
+
+    return parser(rawValue);
+  }
 
   private static parseAirQuality(value: string): AirQuality {
     if (AirQualityValues.has(value as AirQuality)) {
