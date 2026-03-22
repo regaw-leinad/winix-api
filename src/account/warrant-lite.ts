@@ -8,7 +8,6 @@ import {
   InitiateAuthCommandOutput,
   RespondToAuthChallengeCommandOutput,
 } from '@aws-sdk/client-cognito-identity-provider';
-import { format } from 'date-fns';
 import crypto from 'crypto';
 
 class ForceChangePasswordException extends Error {
@@ -84,14 +83,14 @@ function calculateU(bigA: bigint, bigB: bigint): bigint {
 }
 
 function powMod(base: bigint, exponent: bigint, modulus: bigint): bigint {
-  let result = BigInt(1);
-  base = base % modulus;
+  let result = 1n;
+  base = ((base % modulus) + modulus) % modulus;
 
-  while (exponent > 0) {
-    if (exponent % BigInt(2) === BigInt(1)) {
+  while (exponent > 0n) {
+    if (exponent % 2n === 1n) {
       result = (result * base) % modulus;
     }
-    exponent = exponent / BigInt(2);
+    exponent = exponent / 2n;
     base = (base * base) % modulus;
   }
 
@@ -234,10 +233,11 @@ export class WarrantLite {
   }
 
   private getFormattedTimestamp(): string {
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const now = new Date();
-    const utcDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
-      now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds()));
+    const pad = (n: number) => n.toString().padStart(2, '0');
 
-    return format(utcDate, 'EEE MMM d HH:mm:ss \'UTC\' yyyy');
+    return `${weekdays[now.getUTCDay()]} ${months[now.getUTCMonth()]} ${now.getUTCDate()} ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())} UTC ${now.getUTCFullYear()}`;
   }
 }
