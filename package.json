@@ -28,7 +28,6 @@
     "@aws-sdk/client-cognito-identity-provider": "3.716.0",
     "axios": "1.7.9",
     "crc": "4.3.2",
-    "date-fns": "4.1.0",
     "jsonwebtoken": "9.0.2"
   },
   "devDependencies": {

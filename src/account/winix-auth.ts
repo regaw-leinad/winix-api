@@ -28,11 +28,12 @@ export class RefreshTokenExpiredError extends Error {
 
 export class WinixAuth {
 
-  static async login(username: string, password: string, maxAttempts = 5): Promise<WinixAuthResponse> {
-    const w = new WarrantLite(username, password, COGNITO_CLIENT, COGNITO_USER_POOL_ID, COGNITO_APP_CLIENT_ID, COGNITO_CLIENT_SECRET_KEY);
-
-    // Workaround for Winix's login API failing when user is signed in to the app on another device.
-    const response = await retry(() => w.authenticateUser(), maxAttempts, 3000);
+  static async login(username: string, password: string, maxAttempts = 3): Promise<WinixAuthResponse> {
+    // Retry with a fresh WarrantLite instance per attempt to generate new SRP values each time.
+    const response = await retry(() => {
+      const w = new WarrantLite(username, password, COGNITO_CLIENT, COGNITO_USER_POOL_ID, COGNITO_APP_CLIENT_ID, COGNITO_CLIENT_SECRET_KEY);
+      return w.authenticateUser();
+    }, maxAttempts, 3000);
     const sub = decode(response.AuthenticationResult!.AccessToken!)!.sub as string;
 
     return {
