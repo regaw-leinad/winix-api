@@ -20,18 +20,6 @@ export interface StatusData {
 }
 
 export interface StatusAttributes {
-  // Power
-  A02: string;
-  // Mode
-  A03: string;
-  // Airflow
-  A04: string;
-  // Plasmawave
-  A07: string;
-  // Filter Hours
-  A21: string;
-  // Air Quality
-  S07: string;
-  // Ambient Light
-  S14: string;
+  // All attributes are dynamic and model-dependent
+  [key: string]: string;
 }
