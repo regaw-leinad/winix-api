@@ -3,8 +3,8 @@ import {
   DeviceCapabilities, DeviceStatus, Mode, Plasmawave, PollutionLamp, Power, Timer, UV,
 } from './device';
 import { SetAttributeResponse, StatusAttributes, StatusBody, StatusResponse } from './response';
-import { getErrorMessage, isResponseError } from './error';
-import axios, { AxiosResponse } from 'axios';
+import { getErrorMessage, isResponseError, RateLimitError } from './error';
+import axios, { AxiosResponse, isAxiosError } from 'axios';
 
 const AirQualityValues = new Set(
   [
@@ -227,7 +227,16 @@ export class WinixAPI {
 
   private static async getDeviceStatusAttributes(deviceId: string): Promise<StatusAttributes> {
     const url: string = WinixAPI.getDeviceStatusUrl(deviceId);
-    const result: AxiosResponse<StatusResponse> = await axios.get<StatusResponse>(url);
+
+    let result: AxiosResponse<StatusResponse>;
+    try {
+      result = await axios.get<StatusResponse>(url);
+    } catch (e: unknown) {
+      if (isAxiosError(e) && (e.response?.status === 403 || e.response?.status === 429)) {
+        throw new RateLimitError();
+      }
+      throw e;
+    }
 
     const resultMessage: string = result.data.headers.resultMessage;
     const body: StatusBody = result.data.body;
@@ -246,7 +255,16 @@ export class WinixAPI {
 
   private static async setDeviceAttribute(deviceId: string, attribute: Attribute, value: AttributeValue): Promise<AttributeValue> {
     const url: string = WinixAPI.getSetAttributeUrl(deviceId, attribute, value);
-    const result: AxiosResponse<SetAttributeResponse> = await axios.get<SetAttributeResponse>(url);
+
+    let result: AxiosResponse<SetAttributeResponse>;
+    try {
+      result = await axios.get<SetAttributeResponse>(url);
+    } catch (e: unknown) {
+      if (isAxiosError(e) && (e.response?.status === 403 || e.response?.status === 429)) {
+        throw new RateLimitError();
+      }
+      throw e;
+    }
 
     const resultMessage: string = result.data.headers.resultMessage;
 
