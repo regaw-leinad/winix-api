@@ -1,3 +1,10 @@
+export class RateLimitError extends Error {
+  constructor() {
+    super('Rate limited by Winix API');
+    this.name = 'RateLimitError';
+  }
+}
+
 type ErrorMessages = {
   [key: string]: { x: boolean; displayName?: string };
 };

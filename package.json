@@ -19,6 +19,7 @@
     "build": "rm -rf ./dist && tsc",
     "test": "vitest run",
     "test:integration": "vitest run test/integration.test.ts",
+    "test:integration:rate-limit": "vitest run test/integration-rate-limit.test.ts",
     "validate": "npm run lint && npm run build",
     "prepublishOnly": "npm run lint && npm run build",
     "version": "npm run validate",
