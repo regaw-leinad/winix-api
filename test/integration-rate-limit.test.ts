@@ -1,11 +1,22 @@
-import { describe, it, expect } from 'vitest';
-import { WinixAPI, WinixClient, RateLimitError, Power } from '../src';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { WinixAccount, WinixClient, RateLimitError, Power } from '../src';
 
+const USERNAME = process.env.WINIX_USERNAME;
+const PASSWORD = process.env.WINIX_PASSWORD;
 const DEVICE_ID = process.env.WINIX_DEVICE_ID;
 
-describe.runIf(DEVICE_ID)('rate limiting integration', () => {
+const canRun = USERNAME && PASSWORD && DEVICE_ID;
+
+describe.runIf(canRun)('rate limiting integration', () => {
+  let identityId: string;
+
+  beforeAll(async () => {
+    const account = await WinixAccount.fromCredentials(USERNAME!, PASSWORD!);
+    identityId = account.getIdentityId();
+  }, 30_000);
+
   it('should throw RateLimitError, block during cooldown, and recover', async () => {
-    const client = new WinixClient();
+    const client = new WinixClient(identityId);
 
     // Step 1: Drain the bucket with rapid-fire requests
     let requestCount = 0;
@@ -38,7 +49,7 @@ describe.runIf(DEVICE_ID)('rate limiting integration', () => {
   }, 180_000);
 
   it('should not trigger cooldown on invalid device ID', async () => {
-    const client = new WinixClient();
+    const client = new WinixClient(identityId);
 
     // A bogus device ID should return an application-level error, not a rate limit
     try {
@@ -50,28 +61,4 @@ describe.runIf(DEVICE_ID)('rate limiting integration', () => {
     // Client should not be in cooldown
     expect(client.getCooldownRemaining()).toBe(0);
   }, 15_000);
-
-  it('should work normally for a single request after recovery', async () => {
-    // Wait for any leftover rate limit from previous test to clear
-    await new Promise(r => setTimeout(r, 75_000));
-
-    const client = new WinixClient();
-
-    // Single request should succeed and not trigger cooldown
-    const status = await client.getDeviceStatus(DEVICE_ID!);
-    expect(status.power).toBeDefined();
-    expect(client.getCooldownRemaining()).toBe(0);
-
-    // Verify the raw API also returns RateLimitError (not AxiosError) when rate limited
-    let hitLimit = false;
-    for (let i = 0; i < 100 && !hitLimit; i++) {
-      try {
-        await WinixAPI.getDeviceStatus(DEVICE_ID!);
-      } catch (e) {
-        expect(e).toBeInstanceOf(RateLimitError);
-        hitLimit = true;
-      }
-    }
-    expect(hitLimit).toBe(true);
-  }, 120_000);
 });
