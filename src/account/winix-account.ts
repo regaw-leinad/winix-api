@@ -1,13 +1,21 @@
-import { COGNITO_CLIENT_SECRET_KEY, WinixAuth, WinixAuthResponse } from './winix-auth';
+import { COGNITO_REGION, WinixAuth, WinixAuthResponse, COGNITO_USER_POOL_ID } from './winix-auth';
 import { decode, JwtPayload } from 'jsonwebtoken';
 import { WinixDevice } from './winix-device';
 import { crc32 } from 'crc';
 import { mobilePost, MOBILE_APP_VERSION, MOBILE_MODEL } from './winix-crypto';
+import { CognitoIdentity } from '@aws-sdk/client-cognito-identity';
 
 const TOKEN_EXPIRY_BUFFER = 10 * 60 * 1000;
 const URL_GET_DEVICES = 'https://us.mobile.winix-iot.com/getDeviceInfoList';
 const URL_REGISTER_USER = 'https://us.mobile.winix-iot.com/registerUser';
 const URL_CHECK_ACCESS_TOKEN = 'https://us.mobile.winix-iot.com/checkAccessToken';
+const URL_INIT = 'https://us.mobile.winix-iot.com/init';
+
+// Pulled from Winix Smart v1.5.7 APK (AWSAbstractCognitoIdentityProvider.java).
+const IDENTITY_POOL_ID = 'us-east-1:84008e15-d6af-4698-8646-66d05c1abe8b';
+const COGNITO_LOGINS_PROVIDER = `cognito-idp.${COGNITO_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}`;
+
+const IDENTITY_CLIENT = new CognitoIdentity({ region: COGNITO_REGION });
 
 interface WinixMobileResponse {
   resultCode: string;
@@ -38,6 +46,7 @@ export interface WinixExistingAuth {
 
 export class WinixAccount {
   private uuid: string;
+  private identityId?: string;
 
   private constructor(private username: string, private auth: WinixAuthResponse) {
     this.uuid = WinixAccount.generateUuid(auth.accessToken);
@@ -72,8 +81,7 @@ export class WinixAccount {
    */
   static async from(username: string, auth: WinixAuthResponse): Promise<WinixAccount> {
     const account = new WinixAccount(username, auth);
-    await account.registerUser();
-    await account.checkAccessToken();
+    await account.establishSession();
     return account;
   }
 
@@ -82,14 +90,8 @@ export class WinixAccount {
    */
   async getDevices(): Promise<WinixDevice[]> {
     const response = await mobilePost<WinixDevicesResponse>(URL_GET_DEVICES, {
-      cognitoClientSecretKey: COGNITO_CLIENT_SECRET_KEY,
       accessToken: await this.getAccessToken(),
       uuid: this.uuid,
-      osType: 'android',
-      osVersion: '29',
-      mobileLang: 'en',
-      appVersion: MOBILE_APP_VERSION,
-      mobileModel: MOBILE_MODEL,
     });
 
     return response.deviceInfoList;
@@ -104,7 +106,18 @@ export class WinixAccount {
     this.auth = await WinixAuth.refresh(this.auth.refreshToken, this.auth.userId);
     // Generate a new uuid based on the new access token
     this.uuid = WinixAccount.generateUuid(this.auth.accessToken);
+    await this.establishSession();
+  }
+
+  /**
+   * Run the Winix mobile handshake that follows a fresh login or token refresh.
+   * Order is load-bearing: identityId is needed by registerUser/checkAccessToken,
+   * and /init sits between registerUser and checkAccessToken as of v1.5.7.
+   */
+  private async establishSession(): Promise<void> {
+    await this.resolveIdentityId();
     await this.registerUser();
+    await this.init();
     await this.checkAccessToken();
   }
 
@@ -126,14 +139,24 @@ export class WinixAccount {
   }
 
   /**
-   * Register the logged-in android login/uuid with the Winix API.
-   *
-   * Call after getting a cognito access token, but before checkAccessToken(). This is necessary for the winix backend
-   * to recognize the android "uuid" we send in these api requests.
+   * Resolve the Cognito Identity Pool identity id for the current user.
+   * Required in the mobile API payload as of Winix Smart v1.5.7.
+   */
+  private async resolveIdentityId(): Promise<void> {
+    const response = await IDENTITY_CLIENT.getId({
+      IdentityPoolId: IDENTITY_POOL_ID,
+      Logins: { [COGNITO_LOGINS_PROVIDER]: this.auth.idToken },
+    });
+    this.identityId = response.IdentityId!;
+  }
+
+  /**
+   * Register the logged-in android login/uuid with the Winix API. The winix backend
+   * needs to see this registration before it accepts the "uuid" we send on later calls.
    */
   private async registerUser(): Promise<void> {
     await mobilePost<WinixMobileResponse>(URL_REGISTER_USER, {
-      cognitoClientSecretKey: COGNITO_CLIENT_SECRET_KEY,
+      identityId: this.identityId,
       accessToken: await this.getAccessToken(),
       uuid: this.uuid,
       email: this.username,
@@ -146,14 +169,24 @@ export class WinixAccount {
   }
 
   /**
+   * Winix mobile API init endpoint. Called after registerUser() as of v1.5.7.
+   */
+  private async init(): Promise<void> {
+    await mobilePost<WinixMobileResponse>(URL_INIT, {
+      accessToken: await this.getAccessToken(),
+      uuid: this.uuid,
+      region: 'US',
+    });
+  }
+
+  /**
    * Confirm the validity of the access token with the Winix API.
    */
   private async checkAccessToken(): Promise<void> {
     await mobilePost<WinixMobileResponse>(URL_CHECK_ACCESS_TOKEN, {
-      cognitoClientSecretKey: COGNITO_CLIENT_SECRET_KEY,
+      identityId: this.identityId,
       accessToken: await this.getAccessToken(),
       uuid: this.uuid,
-      osType: 'android',
       osVersion: '29',
       mobileLang: 'en',
       appVersion: MOBILE_APP_VERSION,

@@ -113,19 +113,12 @@ export class WarrantLite {
     private client: CognitoIdentityProvider,
     private poolId: string,
     private clientId: string,
-    private clientSecret: string,
   ) {
     this.bigN = hexToLong(nHex);
     this.g = hexToLong(gHex);
     this.k = hexToLong(hexHash('00' + nHex + '0' + gHex));
     this.smallAValue = this.generateRandomSmallA();
     this.largeAValue = this.calculateA();
-  }
-
-  static getSecretHash(username: string, clientId: string, clientSecret: string): string {
-    const message = Buffer.from(username + clientId, 'utf-8');
-    const hmac = crypto.createHmac('sha256', clientSecret).update(message).digest();
-    return hmac.toString('base64');
   }
 
   async authenticateUser(): Promise<RespondToAuthChallengeCommandOutput> {
@@ -199,7 +192,6 @@ export class WarrantLite {
     return {
       USERNAME: this.username,
       SRP_A: longToHex(this.largeAValue),
-      SECRET_HASH: WarrantLite.getSecretHash(this.username, this.clientId, this.clientSecret),
     };
   }
 
@@ -228,7 +220,6 @@ export class WarrantLite {
       USERNAME: userIdForSrp,
       PASSWORD_CLAIM_SECRET_BLOCK: secretBlockB64,
       PASSWORD_CLAIM_SIGNATURE: signatureString,
-      SECRET_HASH: WarrantLite.getSecretHash(this.username, this.clientId, this.clientSecret),
     };
   }
 
