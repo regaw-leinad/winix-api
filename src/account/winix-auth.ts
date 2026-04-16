@@ -2,10 +2,9 @@ import { CognitoIdentityProvider, NotAuthorizedException } from '@aws-sdk/client
 import { WarrantLite } from './warrant-lite';
 import { decode } from 'jsonwebtoken';
 
-// Pulled from Winix Home v1.0.8 (Android) APK
-// thanks to https://github.com/hfern/winix
-export const COGNITO_APP_CLIENT_ID = '14og512b9u20b8vrdm55d8empi';
-export const COGNITO_CLIENT_SECRET_KEY = 'k554d4pvgf2n0chbhgtmbe4q0ul4a9flp3pcl6a47ch6rripvvr';
+// Pulled from Winix Smart v1.5.7 (Android) APK.
+// Winix rotated the client on 2026-04-16 and moved to a public client (no secret).
+export const COGNITO_APP_CLIENT_ID = '5rjk59c5tt7k9g8gpj0vd2qfg9';
 export const COGNITO_USER_POOL_ID = 'us-east-1_Ofd50EosD';
 export const COGNITO_REGION = 'us-east-1';
 
@@ -16,6 +15,7 @@ const COGNITO_CLIENT = new CognitoIdentityProvider({
 export interface WinixAuthResponse {
   userId: string;
   accessToken: string;
+  idToken: string;
   expiresAt: number;
   refreshToken: string;
 }
@@ -31,7 +31,7 @@ export class WinixAuth {
   static async login(username: string, password: string, maxAttempts = 3): Promise<WinixAuthResponse> {
     // Retry with a fresh WarrantLite instance per attempt to generate new SRP values each time.
     const response = await retry(() => {
-      const w = new WarrantLite(username, password, COGNITO_CLIENT, COGNITO_USER_POOL_ID, COGNITO_APP_CLIENT_ID, COGNITO_CLIENT_SECRET_KEY);
+      const w = new WarrantLite(username, password, COGNITO_CLIENT, COGNITO_USER_POOL_ID, COGNITO_APP_CLIENT_ID);
       return w.authenticateUser();
     }, maxAttempts, 3000);
     const sub = decode(response.AuthenticationResult!.AccessToken!)!.sub as string;
@@ -39,6 +39,7 @@ export class WinixAuth {
     return {
       userId: sub,
       accessToken: response.AuthenticationResult!.AccessToken!,
+      idToken: response.AuthenticationResult!.IdToken!,
       expiresAt: toExpiresAt(response.AuthenticationResult!.ExpiresIn!),
       refreshToken: response.AuthenticationResult!.RefreshToken!,
     };
@@ -47,7 +48,6 @@ export class WinixAuth {
   static async refresh(refreshToken: string, userId: string): Promise<WinixAuthResponse> {
     const authParams = {
       REFRESH_TOKEN: refreshToken,
-      SECRET_HASH: WarrantLite.getSecretHash(userId, COGNITO_APP_CLIENT_ID, COGNITO_CLIENT_SECRET_KEY),
     };
 
     let response;
@@ -68,6 +68,7 @@ export class WinixAuth {
     return {
       userId: userId,
       accessToken: response.AuthenticationResult!.AccessToken!,
+      idToken: response.AuthenticationResult!.IdToken!,
       expiresAt: toExpiresAt(response.AuthenticationResult!.ExpiresIn!),
       refreshToken: refreshToken,
     };
