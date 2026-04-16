@@ -113,12 +113,16 @@ export class WinixAccount {
    * Run the Winix mobile handshake that follows a fresh login or token refresh.
    * Order is load-bearing: identityId is needed by registerUser/checkAccessToken,
    * and /init sits between registerUser and checkAccessToken as of v1.5.7.
+   *
+   * Uses this.auth.accessToken directly (not getAccessToken) so a stale isExpired()
+   * check can't recursively trigger another refresh mid-handshake.
    */
   private async establishSession(): Promise<void> {
+    const accessToken = this.auth.accessToken;
     await this.resolveIdentityId();
-    await this.registerUser();
-    await this.init();
-    await this.checkAccessToken();
+    await this.registerUser(accessToken);
+    await this.init(accessToken);
+    await this.checkAccessToken(accessToken);
   }
 
   private async getAccessToken(): Promise<string> {
@@ -147,17 +151,20 @@ export class WinixAccount {
       IdentityPoolId: IDENTITY_POOL_ID,
       Logins: { [COGNITO_LOGINS_PROVIDER]: this.auth.idToken },
     });
-    this.identityId = response.IdentityId!;
+    if (!response.IdentityId) {
+      throw new Error('Cognito GetId returned no IdentityId');
+    }
+    this.identityId = response.IdentityId;
   }
 
   /**
    * Register the logged-in android login/uuid with the Winix API. The winix backend
    * needs to see this registration before it accepts the "uuid" we send on later calls.
    */
-  private async registerUser(): Promise<void> {
+  private async registerUser(accessToken: string): Promise<void> {
     await mobilePost<WinixMobileResponse>(URL_REGISTER_USER, {
       identityId: this.identityId,
-      accessToken: await this.getAccessToken(),
+      accessToken,
       uuid: this.uuid,
       email: this.username,
       osType: 'android',
@@ -171,9 +178,9 @@ export class WinixAccount {
   /**
    * Winix mobile API init endpoint. Called after registerUser() as of v1.5.7.
    */
-  private async init(): Promise<void> {
+  private async init(accessToken: string): Promise<void> {
     await mobilePost<WinixMobileResponse>(URL_INIT, {
-      accessToken: await this.getAccessToken(),
+      accessToken,
       uuid: this.uuid,
       region: 'US',
     });
@@ -182,10 +189,10 @@ export class WinixAccount {
   /**
    * Confirm the validity of the access token with the Winix API.
    */
-  private async checkAccessToken(): Promise<void> {
+  private async checkAccessToken(accessToken: string): Promise<void> {
     await mobilePost<WinixMobileResponse>(URL_CHECK_ACCESS_TOKEN, {
       identityId: this.identityId,
-      accessToken: await this.getAccessToken(),
+      accessToken,
       uuid: this.uuid,
       osVersion: '29',
       mobileLang: 'en',

@@ -16,7 +16,7 @@ const URL = 'https://us.mobile.winix-iot.com/registerUser';
 
 function encryptedResponse(status: number, body: object | null) {
   const data = body === null ? Buffer.alloc(0) : encrypt(body);
-  return { status, data: data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) };
+  return { status, data };
 }
 
 describe('mobilePost', () => {
@@ -36,7 +36,7 @@ describe('mobilePost', () => {
   });
 
   it('throws with HTTP info when the non-2xx body cannot be decrypted', async () => {
-    mockedPost.mockResolvedValue({ status: 502, data: Buffer.from('<html>gateway</html>').buffer });
+    mockedPost.mockResolvedValue({ status: 502, data: Buffer.from('<html>gateway</html>') });
     await expect(mobilePost(URL, {})).rejects.toThrow(/HTTP 502.*no decryptable body/);
   });
 
