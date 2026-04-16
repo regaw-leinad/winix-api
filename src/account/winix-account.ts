@@ -86,6 +86,17 @@ export class WinixAccount {
   }
 
   /**
+   * Get the Cognito Identity Pool identity id resolved during session establishment.
+   * Required to construct a WinixClient for device control.
+   */
+  getIdentityId(): string {
+    if (!this.identityId) {
+      throw new Error('identityId not resolved; call a WinixAccount factory before getIdentityId()');
+    }
+    return this.identityId;
+  }
+
+  /**
    * Get a list of devices associated with the account.
    */
   async getDevices(): Promise<WinixDevice[]> {
