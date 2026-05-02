@@ -20,6 +20,7 @@
     "test": "vitest run",
     "test:integration": "vitest run test/integration.test.ts",
     "test:integration:rate-limit": "vitest run test/integration-rate-limit.test.ts",
+    "test:integration:session": "node --env-file=.env ./node_modules/vitest/vitest.mjs run test/integration-session.test.ts --reporter=verbose",
     "validate": "npm run lint && npm run build",
     "prepublishOnly": "npm run lint && npm run build",
     "version": "npm run validate",
