@@ -3,7 +3,7 @@ import {
   DeviceCapabilities, DeviceStatus, Mode, Plasmawave, PollutionLamp, Power, Timer, UV,
 } from './device';
 import { SetAttributeResponse, StatusAttributes, StatusBody, StatusResponse } from './response';
-import { getErrorMessage, isResponseError, RateLimitError } from './error';
+import { getErrorMessage, isResponseError, NoDataError, RateLimitError } from './error';
 import axios, { AxiosResponse, isAxiosError } from 'axios';
 
 const DEFAULT_COOLDOWN_MS = 60_000;
@@ -261,7 +261,11 @@ export class WinixClient {
       const resultMessage: string = result.data.headers.resultMessage;
       const body: StatusBody = result.data.body;
 
-      if (isResponseError(resultMessage) || isEmpty(body) || isEmpty(body.data)) {
+      if (resultMessage === 'no data' || isEmpty(body) || isEmpty(body.data)) {
+        throw new NoDataError();
+      }
+
+      if (isResponseError(resultMessage)) {
         throw new Error(getErrorMessage(resultMessage));
       }
 

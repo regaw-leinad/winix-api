@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv } from 'crypto';
 import axios from 'axios';
+import { isMobileSessionInvalid, MobileSessionInvalidError } from '../error';
 
 interface MobileResponseEnvelope {
   resultCode?: string;
@@ -50,6 +51,9 @@ export async function mobilePost<T>(url: string, payload: object): Promise<T> {
   if (response.status !== 200) {
     const code = body?.resultCode ?? 'unknown';
     const message = body?.resultMessage ?? `HTTP ${response.status} with no decryptable body`;
+    if (isMobileSessionInvalid(response.status, body?.resultCode)) {
+      throw new MobileSessionInvalidError(code, message, response.status, url);
+    }
     throw new Error(`${url} failed (HTTP ${response.status}, resultCode=${code}): ${message}`);
   }
 

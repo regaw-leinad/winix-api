@@ -5,6 +5,25 @@ export class RateLimitError extends Error {
   }
 }
 
+export class NoDataError extends Error {
+  constructor() {
+    super('no data (invalid or unregistered device?)');
+    this.name = 'NoDataError';
+  }
+}
+
+export class MobileSessionInvalidError extends Error {
+  constructor(
+    public readonly resultCode: string,
+    public readonly resultMessage: string,
+    public readonly httpStatus: number,
+    url: string,
+  ) {
+    super(`${url} failed (HTTP ${httpStatus}, resultCode=${resultCode}): ${resultMessage}`);
+    this.name = 'MobileSessionInvalidError';
+  }
+}
+
 type ErrorMessages = {
   [key: string]: { x: boolean; displayName?: string };
 };
@@ -28,4 +47,11 @@ export const getErrorMessage = (possibleError: string): string => {
   }
 
   return error.displayName;
+};
+
+export const isMobileSessionInvalid = (httpStatus: number, resultCode: string | undefined): boolean => {
+  if (httpStatus !== 400) {
+    return false;
+  }
+  return resultCode === '400' || resultCode === '900';
 };
