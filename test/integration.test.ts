@@ -100,7 +100,11 @@ describe.runIf(hasCredentials)('winix api integration', () => {
       const status = await client.getDeviceStatus(DEVICE_ID!);
       expect(status.power).toBe(originalPower);
       expect(status.mode).toBe(originalMode);
-      expect(status.airflow).toBe(originalAirflow);
+      // In Auto mode the device controls airflow itself based on air quality,
+      // so an explicit setAirflow does not stick. Only assert when restoring to Manual.
+      if (originalMode === Mode.Manual) {
+        expect(status.airflow).toBe(originalAirflow);
+      }
     }, 45_000);
   });
 });
