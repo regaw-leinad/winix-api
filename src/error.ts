@@ -12,6 +12,15 @@ export class NoDataError extends Error {
   }
 }
 
+// Transient failure talking to Winix's backend: 5xx, network errors (DNS/connect/timeout),
+// or a 2xx with a malformed/non-JSON body. Callers should retain last-known state and retry.
+export class UpstreamUnavailableError extends Error {
+  constructor(public readonly cause: string) {
+    super(`Winix backend unavailable: ${cause}`);
+    this.name = 'UpstreamUnavailableError';
+  }
+}
+
 export class MobileSessionInvalidError extends Error {
   constructor(
     public readonly resultCode: string,

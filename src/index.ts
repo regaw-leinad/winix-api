@@ -6,7 +6,7 @@ import { WinixAccount, WinixExistingAuth } from './account/winix-account';
 import { RefreshTokenExpiredError, WinixAuth, WinixAuthResponse } from './account/winix-auth';
 import { WinixDevice } from './account/winix-device';
 import { WinixClient } from './client';
-import { MobileSessionInvalidError, NoDataError, RateLimitError } from './error';
+import { MobileSessionInvalidError, NoDataError, RateLimitError, UpstreamUnavailableError } from './error';
 
 export {
   WinixDevice,
@@ -17,6 +17,7 @@ export {
   WinixClient,
   RateLimitError,
   NoDataError,
+  UpstreamUnavailableError,
   MobileSessionInvalidError,
   RefreshTokenExpiredError,
   Power,

@@ -3,7 +3,7 @@ import {
   DeviceCapabilities, DeviceStatus, Mode, Plasmawave, PollutionLamp, Power, Timer, UV,
 } from './device';
 import { SetAttributeResponse, StatusAttributes, StatusBody, StatusResponse } from './response';
-import { getErrorMessage, isResponseError, NoDataError, RateLimitError } from './error';
+import { getErrorMessage, isResponseError, NoDataError, RateLimitError, UpstreamUnavailableError } from './error';
 import axios, { AxiosResponse, isAxiosError } from 'axios';
 
 const DEFAULT_COOLDOWN_MS = 60_000;
@@ -252,16 +252,29 @@ export class WinixClient {
       try {
         result = await axios.get<StatusResponse>(url);
       } catch (e: unknown) {
-        if (isAxiosError(e) && (e.response?.status === 403 || e.response?.status === 429)) {
+        if (!isAxiosError(e)) {
+          throw e;
+        }
+        if (e.response?.status === 403 || e.response?.status === 429) {
           throw new RateLimitError();
+        }
+        if (!e.response) {
+          throw new UpstreamUnavailableError(e.code ?? e.message);
+        }
+        if (e.response.status >= 500) {
+          throw new UpstreamUnavailableError(`HTTP ${e.response.status}`);
         }
         throw e;
       }
 
-      const resultMessage: string = result.data.headers.resultMessage;
-      const body: StatusBody = result.data.body;
+      const resultMessage: string | undefined = result.data?.headers?.resultMessage;
+      const body: StatusBody | undefined = result.data?.body;
 
-      if (resultMessage === 'no data' || isEmpty(body) || isEmpty(body.data)) {
+      if (typeof resultMessage !== 'string') {
+        throw new UpstreamUnavailableError('malformed response (missing headers.resultMessage)');
+      }
+
+      if (resultMessage === 'no data' || !body || isEmpty(body) || isEmpty(body.data)) {
         throw new NoDataError();
       }
 
@@ -286,13 +299,26 @@ export class WinixClient {
       try {
         result = await axios.get<SetAttributeResponse>(url);
       } catch (e: unknown) {
-        if (isAxiosError(e) && (e.response?.status === 403 || e.response?.status === 429)) {
+        if (!isAxiosError(e)) {
+          throw e;
+        }
+        if (e.response?.status === 403 || e.response?.status === 429) {
           throw new RateLimitError();
+        }
+        if (!e.response) {
+          throw new UpstreamUnavailableError(e.code ?? e.message);
+        }
+        if (e.response.status >= 500) {
+          throw new UpstreamUnavailableError(`HTTP ${e.response.status}`);
         }
         throw e;
       }
 
-      const resultMessage: string = result.data.headers.resultMessage;
+      const resultMessage: string | undefined = result.data?.headers?.resultMessage;
+
+      if (typeof resultMessage !== 'string') {
+        throw new UpstreamUnavailableError('malformed response (missing headers.resultMessage)');
+      }
 
       if (isResponseError(resultMessage)) {
         throw new Error(getErrorMessage(resultMessage));

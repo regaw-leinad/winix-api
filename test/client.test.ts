@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import axios, { AxiosError, AxiosHeaders } from 'axios';
-import { WinixClient, RateLimitError } from '../src';
+import { WinixClient, RateLimitError, NoDataError, UpstreamUnavailableError } from '../src';
 
 vi.mock('axios', async () => {
   const actual = await vi.importActual<typeof import('axios')>('axios');
@@ -184,15 +184,49 @@ describe('WinixClient', () => {
       await expect(client.getDeviceStatus(DEVICE_ID)).rejects.toThrow(RateLimitError);
     });
 
-    it('rethrows other axios errors', async () => {
+    it('wraps 5xx axios errors as UpstreamUnavailableError', async () => {
       mockedAxiosGet.mockRejectedValue(createAxiosError(500));
-      await expect(client.getDeviceStatus(DEVICE_ID)).rejects.not.toThrow(RateLimitError);
+      await expect(client.getDeviceStatus(DEVICE_ID)).rejects.toThrow(UpstreamUnavailableError);
+    });
+
+    it('wraps 504 gateway timeout as UpstreamUnavailableError with HTTP code', async () => {
+      mockedAxiosGet.mockRejectedValue(createAxiosError(504));
+      await expect(client.getDeviceStatus(DEVICE_ID)).rejects.toThrow(/HTTP 504/);
+    });
+
+    it('wraps axios errors with no response (DNS/connect/timeout) as UpstreamUnavailableError', async () => {
+      const err = new AxiosError('getaddrinfo EAI_AGAIN us.api.winix-iot.com', 'EAI_AGAIN');
+      mockedAxiosGet.mockRejectedValue(err);
+      await expect(client.getDeviceStatus(DEVICE_ID)).rejects.toThrow(UpstreamUnavailableError);
+      await expect(client.getDeviceStatus(DEVICE_ID)).rejects.toThrow(/EAI_AGAIN/);
+    });
+
+    it('rethrows other 4xx axios errors unchanged', async () => {
+      mockedAxiosGet.mockRejectedValue(createAxiosError(404));
       await expect(client.getDeviceStatus(DEVICE_ID)).rejects.toThrow(AxiosError);
     });
 
     it('rethrows non-axios errors', async () => {
       mockedAxiosGet.mockRejectedValue(new Error('network failure'));
       await expect(client.getDeviceStatus(DEVICE_ID)).rejects.toThrow('network failure');
+    });
+
+    it('throws UpstreamUnavailableError on malformed body (missing headers)', async () => {
+      mockedAxiosGet.mockResolvedValue({ data: '<html>503 service unavailable</html>' });
+      await expect(client.getDeviceStatus(DEVICE_ID)).rejects.toThrow(UpstreamUnavailableError);
+      await expect(client.getDeviceStatus(DEVICE_ID)).rejects.toThrow(/malformed/);
+    });
+
+    it('throws UpstreamUnavailableError on null data', async () => {
+      mockedAxiosGet.mockResolvedValue({ data: null });
+      await expect(client.getDeviceStatus(DEVICE_ID)).rejects.toThrow(UpstreamUnavailableError);
+    });
+
+    it('throws NoDataError when resultMessage is "no data"', async () => {
+      mockedAxiosGet.mockResolvedValue({
+        data: { headers: { resultCode: 'F', resultMessage: 'no data' }, body: {} },
+      });
+      await expect(client.getDeviceStatus(DEVICE_ID)).rejects.toThrow(NoDataError);
     });
   });
 
