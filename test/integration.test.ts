@@ -93,38 +93,44 @@ describe.runIf(hasCredentials)('winix api integration', () => {
     }, 50_000);
 
     it('should set mode to manual and airflow to high', async () => {
+      // Writes must be serialized, not batched. Switching Auto -> Manual makes the
+      // device settle airflow to its manual default, which clobbers any airflow
+      // command that arrives inside that transition window. The write is dropped
+      // outright, so polling longer never recovers it. Wait for mode to land first.
       await client.setMode(DEVICE_ID!, Mode.Manual);
-      await client.setAirflow(DEVICE_ID!, Airflow.High);
+      const modeStatus = await waitForStatus(client, DEVICE_ID!, s => s.mode === Mode.Manual);
+      expect(modeStatus.mode).toBe(Mode.Manual);
 
-      const status = await waitForStatus(
-        client,
-        DEVICE_ID!,
-        s => s.mode === Mode.Manual && s.airflow === Airflow.High,
-      );
+      await client.setAirflow(DEVICE_ID!, Airflow.High);
+      const status = await waitForStatus(client, DEVICE_ID!, s => s.airflow === Airflow.High);
       expect(status.mode).toBe(Mode.Manual);
       expect(status.airflow).toBe(Airflow.High);
-    }, 50_000);
+    }, 80_000);
 
     it('should restore original state', async () => {
+      // Serialized for the same reason as the test above: a mode transition
+      // clobbers an airflow command sent in the same window.
       await client.setMode(DEVICE_ID!, originalMode);
-      await client.setAirflow(DEVICE_ID!, originalAirflow);
-      await client.setPower(DEVICE_ID!, originalPower);
+      await waitForStatus(client, DEVICE_ID!, s => s.mode === originalMode);
 
-      // In Auto mode the device controls airflow itself based on air quality, so
-      // an explicit setAirflow does not stick. Only wait for / assert it when
-      // restoring to Manual.
+      // In Auto mode the device drives airflow itself, and an explicit setAirflow
+      // does not merely fail to stick: it kicks the device back out of Auto into
+      // Manual. So when restoring to Auto, skip the airflow write entirely rather
+      // than writing it and ignoring the result.
       const airflowShouldStick = originalMode === Mode.Manual;
-      const status = await waitForStatus(
-        client,
-        DEVICE_ID!,
-        s => s.power === originalPower && s.mode === originalMode &&
-          (!airflowShouldStick || s.airflow === originalAirflow),
-      );
+      if (airflowShouldStick) {
+        await client.setAirflow(DEVICE_ID!, originalAirflow);
+        await waitForStatus(client, DEVICE_ID!, s => s.airflow === originalAirflow);
+      }
+
+      await client.setPower(DEVICE_ID!, originalPower);
+      const status = await waitForStatus(client, DEVICE_ID!, s => s.power === originalPower);
+
       expect(status.power).toBe(originalPower);
       expect(status.mode).toBe(originalMode);
       if (airflowShouldStick) {
         expect(status.airflow).toBe(originalAirflow);
       }
-    }, 60_000);
+    }, 90_000);
   });
 });
